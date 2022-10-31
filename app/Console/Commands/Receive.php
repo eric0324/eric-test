@@ -81,21 +81,27 @@ class Receive extends Command
             false,
             false,
             function ($msg) {
-                $this->info('Received ' . $msg->body . "\n");
 
-                $json = json_decode( $msg->body, true );
+                try {
+                    $this->info('Received ' . $msg->body . "\n");
 
-                // Send to Firebase.
-                $this->firebase_service->send_notification( $json );
+                    $json = json_decode( $msg->body, true );
 
-                // Save to database.
-                $job = $this->FCM_job_repository->create([
-                    'identifier' => data_get($json, 'identifier'),
-                    'deliverAt' => Carbon::now()
-                ]);
+                    // Send to Firebase.
+                    $this->firebase_service->send_notification( $json );
 
-                // Publish a message to the `notification.done` topic.
-                $this->queue_service->publishDone( $job );
+                    // Save to database.
+                    $job = $this->FCM_job_repository->create([
+                        'identifier' => data_get($json, 'identifier'),
+                        'deliverAt' => Carbon::now()
+                    ]);
+
+                    // Publish a message to the `notification.done` topic.
+                    $this->queue_service->publishDone( $job );
+                } catch (Exception $exception) {
+                    $this->error($exception->getMessage());
+                }
+
             }
         );
 
